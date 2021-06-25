@@ -4,12 +4,12 @@ import imagesTpl from '../templates/image-finder.hbs';
 
 import '@pnotify/core/dist/BrightTheme.css';
 import { success } from '@pnotify/core';
+import { error } from '@pnotify/core';
 
 const imagesApiService = new ImagesApiService();
 //refs.loadMoreBtn.classList.add('is-hidden');
 
 refs.searchForm.addEventListener('submit', onSearch);
-makeIntersectionObserver()
 //refs.loadMoreBtn.addEventListener('click', onLoadMore);
 
 
@@ -19,14 +19,10 @@ function onSearch(e) {
   const form = e.currentTarget;
   imagesApiService.query = form.elements.query.value;
 
+  form.reset();
   clearImagesContainer();
   imagesApiService.resetPage();
-  imagesApiService.fetchImages()
-    .then(appendImagesMarkup)
-    .catch(error => error({
-      text: 'Something went wrong!'
-    }))
-    .finally(() => form.reset());
+  observer.observe(refs.sentinel);
   //refs.loadMoreBtn.classList.remove('is-hidden');
 }
 
@@ -35,9 +31,17 @@ function onSearch(e) {
 //}
 
 function appendImagesMarkup(images) {
-  if (images) {
+  if (images.length > 1) {
     success({
       text: 'Successful loading of images!',
+      addClass: 'success',
+      delay: 500,
+    });
+  }
+
+  if (images.length === 0) {
+    error({
+      text: 'Not found!',
       addClass: 'success',
       delay: 500,
     });
@@ -50,19 +54,17 @@ function clearImagesContainer() {
   refs.imagesContainer.innerHTML = '';
 }
 
-function makeIntersectionObserver() {
-  const callback = entries => {
+
+const callback = entries => {
   entries.forEach(entry => {
     if (entry.isIntersecting && imagesApiService.query !== '') {
       imagesApiService.fetchImages().then(appendImagesMarkup);
     }
   });
 };
+
 const options = {
   rootMargin: '150px',
 };
-const observer = new IntersectionObserver(callback, options);
 
-const sentinel = document.querySelector('.load-more');
-observer.observe(sentinel);
-}
+const observer = new IntersectionObserver(callback, options);
